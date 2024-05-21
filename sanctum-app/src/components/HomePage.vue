@@ -39,17 +39,20 @@
       <div v-for="(post, index) in posts" :key="index" class="card mb-3">
         <div class="card-body">
           <div class="avatar-container me-3">
-                            <div class="avatar"></div>
-                        </div>
-          <p>{{ post.content }}</p>
+            <div class="avatar"></div>
+          </div>
+          <p v-if="editIndex !== index">{{ post.content }}</p>
+          <input v-else v-model="editContent" class="form-control" />
           <p class="text-muted">Posted by: {{ post.author }}</p>
           <div class="d-flex justify-content-end">
-            <button @click="editPost(index)" type="button" class="btn btn-sm btn-transparent">
-              <img src="@/assets/EditIcon.png" alt="Edit Icon">
-            </button>
-            <button @click="deletePost(index)" type="button" class="btn btn-sm btn-transparent">
-              <img src="@/assets/DeleteIcon.png" alt="Delete Icon">
-            </button>
+            <button v-if="editIndex === index" @click="updatePost(post.id)" type="button" class="btn btn-sm btn-primary">Save</button>
+            <button v-if="editIndex === index" @click="cancelEdit" type="button" class="btn btn-sm btn-secondary">Cancel</button>
+            <button v-if="post.user_id === userId" @click="startEdit(post, index)" type="button" class="btn btn-sm btn-transparent">
+  <img src="@/assets/EditIcon.png" alt="Edit Icon">
+</button>
+<button v-if="post.user_id === userId" @click="deletePost(post.id, index)" type="button" class="btn btn-sm btn-transparent">
+  <img src="@/assets/DeleteIcon.png" alt="Delete Icon">
+</button>
           </div>
         </div>
       </div>
@@ -66,36 +69,76 @@ export default {
     return {
       postContent: '',
       posts: [],
+      editIndex: null,
+      editContent: '',
+      userId: null, // Add this line
     };
   },
   methods: {
     async createPost() {
-        try {
-            const response = await axios.post(`${this.$root.$data.apiUrl}/posts`, {
-                content: this.postContent
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            this.posts.push(response.data); // Add new post to the array
-            this.postContent = ''; // Clear input field after posting
-        } catch (error) {
-            console.error('Error creating post:', error);
-        }
-    },
-    async fetchPosts() {
       try {
-        const response = await axios.get(`${this.$root.$data.apiUrl}/posts`, {
+        const response = await axios.post(`${this.$root.$data.apiUrl}/posts`, {
+          content: this.postContent
+        }, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`, // Ensure token is sent with request
-          },
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         });
-        this.posts = response.data;
+        this.posts.push(response.data); // Add new post to the array
+        this.postContent = ''; // Clear input field after posting
       } catch (error) {
-        console.error('Error fetching posts:', error);
+        console.error('Error creating post:', error);
       }
     },
+    async fetchPosts() {
+  try {
+    const response = await axios.get(`${this.$root.$data.apiUrl}/posts`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    this.posts = response.data.posts;
+    this.userId = response.data.user_id; // Add this line to get the user ID
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+  }
+},
+
+    startEdit(post, index) {
+      this.editIndex = index;
+      this.editContent = post.content;
+    },
+    cancelEdit() {
+      this.editIndex = null;
+      this.editContent = '';
+    },
+    async updatePost(postId) {
+      try {
+        const response = await axios.put(`${this.$root.$data.apiUrl}/posts/${postId}`, {
+          content: this.editContent
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        this.posts[this.editIndex].content = response.data.post.content;
+        this.cancelEdit();
+      } catch (error) {
+        console.error('Error updating post:', error);
+      }
+    },
+    async deletePost(postId, index) {
+      try {
+        await axios.delete(`${this.$root.$data.apiUrl}/posts/${postId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        this.posts.splice(index, 1); // Remove post from the array
+      } catch (error) {
+        console.error('Error deleting post:', error);
+      }
+    }
   },
   mounted() {
     this.fetchPosts();
@@ -121,5 +164,3 @@ export default {
   border-color: #007bff;
 }
 </style>
-
-
