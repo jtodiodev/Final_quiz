@@ -35,10 +35,9 @@ class PostController extends Controller
     public function index()
     {
         $user = auth()->user(); // Get the currently authenticated user
-        $posts = Post::all();
+        $posts = Post::with('comments')->get(); // Eager load comments with posts
         return response()->json(['user_id' => $user->id, 'posts' => $posts], 200);
     }
-    
 
     public function show($id)
     {

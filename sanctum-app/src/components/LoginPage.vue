@@ -74,6 +74,14 @@ export default {
         this.errors = error.response.data.message;
       }
     },
+    methods: {
+  async logout() {
+    localStorage.removeItem('token');
+    this.$router.push('/login');
+    this.fetchPosts(); // Refetch posts to update the UI state
+  },
+},
+
     clearErrors() {
       // Clear error message for the specified field
       // this method is called when the user types in the input field triggering the event handler

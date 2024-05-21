@@ -40,41 +40,51 @@
     </div>
     <div class="container mt-4">
       <div v-for="(post, index) in posts" :key="index" class="card mb-3">
-  <div class="card-body">
-    <div class="avatar-container me-3">
-      <div class="avatar"></div>
-    </div>
-    <p v-if="editIndex !== index">{{ post.content }}</p>
-    <input v-else v-model="editContent" class="form-control" />
-    <p class="text-muted">Posted by: {{ post.author }}</p>
-    <div class="d-flex justify-content-end">
-      <button v-if="editIndex === index" @click="updatePost(post.id)" type="button" class="btn btn-sm btn-primary">Save</button>
-      <button v-if="editIndex === index" @click="cancelEdit" type="button" class="btn btn-sm btn-secondary">Cancel</button>
-      <button v-if="post.user_id === userId" @click="startEdit(post, index)" type="button" class="btn btn-sm btn-transparent">
-        <img src="@/assets/EditIcon.png" alt="Edit Icon">
-      </button>
-      <button v-if="post.user_id === userId" @click="deletePost(post.id, index)" type="button" class="btn btn-sm btn-transparent">
-        <img src="@/assets/DeleteIcon.png" alt="Delete Icon">
-      </button>
-    </div>
-  </div>
-  <!-- Comment Section -->
-  <div class="card-footer">
-    <h6 class="card-title">Comments</h6>
-    <div class="comment mb-3" v-for="(comment, commentIndex) in post.comments" :key="commentIndex">
-      <p>{{ comment.content }}</p>
-      <p class="text-muted">Commented by: {{ comment.author }}</p>
-    </div>
-    <!-- Add Comment Form -->
-    <div class="d-flex mb-3 align-items-center">
-      <textarea v-model="post.newComment" class="form-control me-2" rows="1" placeholder="Add a comment"></textarea>
-      <button @click="addComment(post.id, post.newComment)" type="button" class="btn btn-sm btn-primary">Submit</button>
-    </div>
-  </div>
-</div>
+        <div class="card-body">
+          <div class="avatar-container me-3">
+            <div class="avatar"></div>
+          </div>
+          <p v-if="editIndex !== index">{{ post.content }}</p>
+          <input v-else v-model="editContent" class="form-control" />
+          <p class="text-muted">Posted by: {{ post.author }}</p>
+          <div class="d-flex justify-content-end">
+            <button v-if="editIndex === index" @click="updatePost(post.id)" type="button"
+              class="btn btn-sm btn-primary">Save</button>
+            <button v-if="editIndex === index" @click="cancelEdit" type="button"
+              class="btn btn-sm btn-secondary">Cancel</button>
+            <button v-if="post.user_id === userId" @click="startEdit(post, index)" type="button"
+              class="btn btn-sm btn-transparent">
+              <img src="@/assets/EditIcon.png" alt="Edit Icon">
+            </button>
+            <button v-if="post.user_id === userId" @click="deletePost(post.id, index)" type="button"
+              class="btn btn-sm btn-transparent">
+              <img src="@/assets/DeleteIcon.png" alt="Delete Icon">
+            </button>
+          </div>
+        </div>
+        <!-- Comment Section -->
+        <div class="card-footer">
+          <h6 class="card-title">Comments</h6>
+          <div class="comment mb-3" v-for="(comment, commentIndex) in post.comments" :key="commentIndex">
+            <p>{{ comment.content }}</p>
+            <p class="text-muted">Commented by: {{ comment.author }}</p>
+            <button v-if="comment.user_id === userId || post.user_id === userId"
+              @click="deleteComment(comment.id, post.id)" type="button" class="btn btn-sm btn-transparent">
+              <img src="@/assets/DeleteIcon.png" alt="Delete Icon">
+            </button>
+          </div>
+          <!-- Add Comment Form -->
+          <div class="d-flex mb-3 align-items-center">
+            <textarea v-model="post.newComment" class="form-control me-2" rows="1"
+              placeholder="Add a comment"></textarea>
+            <button @click="addComment(post.id, post.newComment)" type="button"
+              class="btn btn-sm btn-primary">Submit</button>
+          </div>
+        </div>
+      </div>
 
     </div>
-    
+
   </div>
 </template>
 
@@ -87,9 +97,10 @@ export default {
     return {
       postContent: '',
       posts: [],
+      newComment: '',
       editIndex: null,
       editContent: '',
-      userId: null, // Add this line
+      userId: null,
     };
   },
   methods: {
@@ -102,8 +113,8 @@ export default {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        this.posts.push(response.data); // Add new post to the array
-        this.postContent = ''; // Clear input field after posting
+        this.posts.push(response.data);
+        this.postContent = '';
       } catch (error) {
         console.error('Error creating post:', error);
       }
@@ -115,13 +126,54 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.posts = response.data.posts;
-        this.userId = response.data.user_id; // Add this line to get the user ID
+
+        // Ensure that each post has a comments array
+        this.posts = response.data.posts.map(post => ({
+          ...post,
+          comments: post.comments || [],
+          newComment: ''  // Add a property for new comments input
+        }));
+
+        this.userId = response.data.user_id;
       } catch (error) {
         console.error('Error fetching posts:', error);
       }
     },
+    async addComment(postId, commentContent) {
+      try {
+        const response = await axios.post(`${this.$root.$data.apiUrl}/comments`, {
+          post_id: postId,
+          content: commentContent,
+        }, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
+        const postIndex = this.posts.findIndex(post => post.id === postId);
+        if (postIndex !== -1) {
+          this.posts[postIndex].comments.push(response.data);
+          this.posts[postIndex].newComment = ''; // Clear the new comment input field
+        }
+
+      } catch (error) {
+        console.error('Error adding comment:', error);
+      }
+    },
+    async deleteComment(commentId, postId) {
+      try {
+        await axios.delete(`${this.$root.$data.apiUrl}/comments/${commentId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const post = this.posts.find(post => post.id === postId);
+        const commentIndex = post.comments.findIndex(comment => comment.id === commentId);
+        post.comments.splice(commentIndex, 1);
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      }
+    },
     startEdit(post, index) {
       this.editIndex = index;
       this.editContent = post.content;
@@ -152,7 +204,7 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-        this.posts.splice(index, 1); // Remove post from the array
+        this.posts.splice(index, 1);
       } catch (error) {
         console.error('Error deleting post:', error);
       }
@@ -167,7 +219,6 @@ export default {
 <style>
 .custom-bg {
   background-color: #1d1927;
-  /* Replace with your desired color */
 }
 
 .text-white {

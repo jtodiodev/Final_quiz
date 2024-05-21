@@ -5,24 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Post;
 
-class Post extends Model
+class Comment extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id', // This will store the ID of the user who created the post
-        'author',  // This will store the name of the author
+        'post_id',
+        'user_id',
+        'author',
         'content',
     ];
 
-    // Define the relationship with the User model
     public function user()
     {
         return $this->belongsTo(User::class);
     }
-    public function comments()
+
+    public function post()
     {
-        return $this->hasMany(Comment::class);
+        return $this->belongsTo(Post::class);
     }
 }
