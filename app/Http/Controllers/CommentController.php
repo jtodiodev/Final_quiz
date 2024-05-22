@@ -42,10 +42,28 @@ class CommentController extends Controller
     }
 
     public function index()
-{
-    $posts = Post::with('comments')->get();
-    $user_id = auth()->id();
-    return response()->json(['posts' => $posts, 'user_id' => $user_id]);
-}
+    {
+        $posts = Post::with('comments')->get();
+        $user_id = auth()->id();
+        return response()->json(['posts' => $posts, 'user_id' => $user_id]);
+    }
 
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $comment = Comment::findOrFail($id);
+        $user = Auth::user();
+
+        if ($comment->user_id !== $user->id) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $comment->content = $request->content;
+        $comment->save();
+
+        return response()->json($comment, 200);
+    }
 }

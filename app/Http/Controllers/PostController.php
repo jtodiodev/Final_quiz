@@ -32,12 +32,18 @@ class PostController extends Controller
         }
     }
 
-    public function index()
-    {
-        $user = auth()->user(); // Get the currently authenticated user
-        $posts = Post::with('comments')->get(); // Eager load comments with posts
-        return response()->json(['user_id' => $user->id, 'posts' => $posts], 200);
+public function index()
+{
+    try {
+        $user = auth()->user(); 
+        $posts = Post::with('comments')->get(); 
+
+        // Include the user's name in the response
+        return response()->json(['user_id' => $user->id, 'user_name' => $user->name, 'posts' => $posts], 200);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Internal Server Error'], 500);
     }
+}
 
     public function show($id)
     {
@@ -55,7 +61,6 @@ class PostController extends Controller
             $user = Auth::user();
             $post = Post::findOrFail($id);
 
-            // Check if the authenticated user is the owner of the post
             if ($post->user_id !== $user->id) {
                 return response()->json(['error' => 'Forbidden'], 403);
             }
@@ -73,7 +78,6 @@ class PostController extends Controller
             $user = Auth::user();
             $post = Post::findOrFail($id);
 
-            // Check if the authenticated user is the owner of the post
             if ($post->user_id !== $user->id) {
                 return response()->json(['error' => 'Forbidden'], 403);
             }

@@ -55,22 +55,18 @@ export default {
   methods: {
     async loginUser() {
       try {
-        // Call the login API endpoint using Axios
-        // the /login is an API route that define in the backend using Laravel
+
         const response = await axios.post(this.$root.$data.apiUrl + "/login", {
           email: this.email,
           password: this.password,
         });
         if (response.status === 201) {
-          // Successful login, handle token storage and redirection
-          // the token will be stored in the local storage to guard the routes
-          // this will prevent to access the route without login
+
           localStorage.setItem("token", response.data.token);
           this.$router.push("/home");
         }
       } catch (error) {
-        // Handle login error, show error message to the user
-        // the errors will be displayed in the template using v-if directives
+
         this.errors = error.response.data.message;
       }
     },
@@ -78,13 +74,12 @@ export default {
   async logout() {
     localStorage.removeItem('token');
     this.$router.push('/login');
-    this.fetchPosts(); // Refetch posts to update the UI state
+    this.fetchPosts(); 
   },
 },
 
     clearErrors() {
-      // Clear error message for the specified field
-      // this method is called when the user types in the input field triggering the event handler
+
       this.errors = null;
     },
   },
